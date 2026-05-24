@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { cloudinary } from "@/lib/cloudinary";
-import { analyzeInfrastructureImage } from "@/lib/ai-analysis";
+import { analyzeInfrastructureImage, validateImage } from "@/lib/ai-analysis";
 import { put } from "@vercel/blob";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -58,6 +58,31 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // ── Validate image before storing ──────────────────────────────
+    const validation = await validateImage(buffer, file.type);
+
+    if (validation.suggested_action === "reject") {
+      const reasons: Record<string, string> = {
+        ai_generated: "This image appears to be AI-generated. Please upload a real photo.",
+        stock_photo: "This looks like a stock photo. Please upload your own photo.",
+        screenshot: "Screenshots are not accepted. Please upload a real photo.",
+        meme_or_edited: "Edited images or memes are not accepted.",
+        irrelevant_content: "This image doesn't show a civic issue. Please upload a photo of the problem.",
+        no_issue_visible: "No civic issue is visible in this image.",
+        inappropriate: "This image contains inappropriate content.",
+        low_quality: "Image quality is too low. Please upload a clearer photo.",
+        wrong_location: "This image doesn't appear to be from a European urban area.",
+      };
+      const message = validation.rejection_reason
+        ? (reasons[validation.rejection_reason] ?? "Image rejected. Please upload a valid civic issue photo.")
+        : "Image rejected. Please upload a valid civic issue photo.";
+
+      return Response.json(
+        { error: message, validation, rejected: true },
+        { status: 422 }
+      );
+    }
+
     let imageUrl: string;
     let publicId: string | undefined;
 
@@ -76,7 +101,7 @@ export async function POST(request: Request) {
 
     const aiResult = await analyzeInfrastructureImage(imageUrl, buffer, file.type);
 
-    return Response.json({ imageUrl, publicId, aiResult });
+    return Response.json({ imageUrl, publicId, aiResult, validation });
   } catch (err) {
     console.error("Upload error:", err);
     const message = err instanceof Error ? err.message : "Upload failed";

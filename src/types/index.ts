@@ -38,3 +38,16 @@ export type AiAnalysisResult = {
   additionalNotes: string;
   isDemoMode?: boolean;
 };
+
+export type ImageValidationResult = {
+  is_valid: boolean;
+  confidence: number;
+  category: string;
+  severity: "low" | "medium" | "high" | "none";
+  detected_elements: string[];
+  location_context: string;
+  authenticity_score: number;
+  rejection_reason: string | null;
+  explanation: string;
+  suggested_action: "accept" | "reject" | "manual_review";
+};

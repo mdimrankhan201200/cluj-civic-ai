@@ -1,5 +1,5 @@
 import { anthropic } from "@/lib/anthropic";
-import type { AiAnalysisResult } from "@/types";
+import type { AiAnalysisResult, ImageValidationResult } from "@/types";
 
 const VALID_ISSUE_TYPES = [
   "POTHOLE", "BROKEN_ROAD", "SIDEWALK_DAMAGE", "OVERFLOWING_BIN",
@@ -115,6 +115,108 @@ function getDemoResult(buffer?: Buffer): AiAnalysisResult {
   }
   const idx = Math.abs(hash) % DEMO_SCENARIOS.length;
   return { ...DEMO_SCENARIOS[idx], isDemoMode: true };
+}
+
+const VALIDATION_PROMPT = `You are a strict image validator for the Cluj Civic AI reporting platform. Your job is to determine if an uploaded image is a REAL photo of a genuine civic issue in Cluj-Napoca, Romania, or if it should be REJECTED.
+
+ANALYZE the image carefully for:
+
+1. AUTHENTICITY CHECK (is this a real phone/camera photo?)
+   - Natural lighting, shadows, and imperfections
+   - Realistic depth of field and focus
+   - REJECT if: AI-generated, stock photo, screenshot, meme, heavily edited, or contains overlay graphics
+
+2. RELEVANCE CHECK (is this a civic issue?)
+   - Must show a public space problem: pothole, garbage, graffiti, broken infrastructure, illegal parking, damaged signage, broken streetlight, vandalism, flooding, abandoned vehicle, damaged sidewalk, fallen tree, etc.
+   - Must be outdoors or in a public area (street, sidewalk, park, public building)
+   - REJECT if: selfie, food, pet, indoor private space, random object, clean normal scene with no issue, NSFW, violent, or personal content
+
+3. CONTEXT CHECK (does it fit Cluj/European urban setting?)
+   - European architecture, signage, vehicles, road markings
+   - REJECT if: clearly from another continent unless ambiguous
+
+RESPOND ONLY with this exact JSON (no markdown, no extra text):
+{
+  "is_valid": true or false,
+  "confidence": 0.0 to 1.0,
+  "category": "pothole" | "garbage" | "graffiti" | "broken_infrastructure" | "illegal_parking" | "damaged_signage" | "street_lighting" | "vandalism" | "flooding" | "abandoned_vehicle" | "damaged_sidewalk" | "other_civic" | "invalid",
+  "severity": "low" | "medium" | "high" | "none",
+  "detected_elements": ["element1", "element2"],
+  "location_context": "urban_street" | "sidewalk" | "park" | "public_building" | "residential_area" | "indoor" | "unknown",
+  "authenticity_score": 0.0 to 1.0,
+  "rejection_reason": "ai_generated" | "stock_photo" | "screenshot" | "meme_or_edited" | "irrelevant_content" | "no_issue_visible" | "inappropriate" | "low_quality" | "wrong_location" | null,
+  "explanation": "One short sentence explaining the decision in plain language",
+  "suggested_action": "accept" | "reject" | "manual_review"
+}
+
+DECISION RULES:
+- If is_valid = true AND confidence >= 0.75 → suggested_action: "accept"
+- If is_valid = false AND confidence >= 0.75 → suggested_action: "reject"
+- Otherwise → suggested_action: "manual_review"
+
+Be strict on fakes but fair on real photos. A blurry phone shot of a real pothole is VALID. A perfect studio image of a pothole is INVALID.`;
+
+const FALLBACK_VALIDATION: ImageValidationResult = {
+  is_valid: true,
+  confidence: 0.6,
+  category: "other_civic",
+  severity: "medium",
+  detected_elements: [],
+  location_context: "unknown",
+  authenticity_score: 0.6,
+  rejection_reason: null,
+  explanation: "Validation unavailable — image accepted for manual review.",
+  suggested_action: "manual_review",
+};
+
+export async function validateImage(
+  buffer: Buffer,
+  mimeType: string
+): Promise<ImageValidationResult> {
+  if (!isAnthropicConfigured()) return FALLBACK_VALIDATION;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 512,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: (mimeType ?? "image/jpeg") as MediaType,
+                data: buffer.toString("base64"),
+              },
+            },
+            { type: "text", text: VALIDATION_PROMPT },
+          ],
+        },
+      ],
+    });
+
+    const textBlock = response.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") return FALLBACK_VALIDATION;
+
+    const raw = JSON.parse(textBlock.text) as ImageValidationResult;
+    return {
+      is_valid: Boolean(raw.is_valid),
+      confidence: Number(raw.confidence ?? 0.5),
+      category: raw.category ?? "invalid",
+      severity: raw.severity ?? "none",
+      detected_elements: Array.isArray(raw.detected_elements) ? raw.detected_elements : [],
+      location_context: raw.location_context ?? "unknown",
+      authenticity_score: Number(raw.authenticity_score ?? 0.5),
+      rejection_reason: raw.rejection_reason ?? null,
+      explanation: raw.explanation ?? "",
+      suggested_action: raw.suggested_action ?? "manual_review",
+    };
+  } catch (err) {
+    console.error("[Image Validation] Error:", err);
+    return FALLBACK_VALIDATION;
+  }
 }
 
 export async function analyzeInfrastructureImage(

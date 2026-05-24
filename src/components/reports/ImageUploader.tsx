@@ -120,6 +120,18 @@ export function ImageUploader({ onUploadComplete, onUploadingChange, disabled }:
 
         if (!res.ok) {
           const json = await res.json().catch(() => ({}));
+          // 422 = validation rejection — show explanation, clear preview
+          if (res.status === 422) {
+            setPreview(null);
+            setUploadDone(false);
+            onUploadingChange?.(false);
+            setUploading(false);
+            cancelledRef.current = true;
+            toast.error(json.error ?? "Image rejected. Please upload a real civic issue photo.", {
+              duration: 6000,
+            });
+            return;
+          }
           throw new Error(json.error ?? t.uploader.uploadError);
         }
 
