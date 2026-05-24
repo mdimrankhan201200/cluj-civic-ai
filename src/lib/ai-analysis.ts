@@ -13,7 +13,8 @@ type MediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
 
 function isAnthropicConfigured() {
   const key = process.env.ANTHROPIC_API_KEY ?? "";
-  return key.length > 10 && !key.includes("your-") && !key.includes("placeholder");
+  // Valid Anthropic keys always start with sk-ant-
+  return key.startsWith("sk-ant-") && key.length > 20;
 }
 
 

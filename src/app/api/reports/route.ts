@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
-  const limit = Math.min(50, parseInt(searchParams.get("limit") ?? "10"));
+  const limit = Math.min(200, parseInt(searchParams.get("limit") ?? "10"));
   const status = searchParams.get("status") as ReportStatus | null;
   const severity = searchParams.get("severity") as Severity | null;
   const issueType = searchParams.get("issueType") as IssueType | null;
