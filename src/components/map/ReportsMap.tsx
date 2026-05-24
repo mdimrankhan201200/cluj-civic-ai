@@ -65,7 +65,7 @@ export function ReportsMap() {
   const [tileLayer, setTileLayer] = useState<TileLayerKey>("street");
 
   useEffect(() => {
-    fetch("/api/reports?limit=200")
+    fetch("/api/reports/map")
       .then((r) => r.json())
       .then((data: { data: Report[] }) => {
         setReports(data.data ?? []);
@@ -102,16 +102,18 @@ export function ReportsMap() {
                 position={[report.latitude, report.longitude]}
                 icon={makeMarkerIcon(color)}
               >
-                <Popup minWidth={220} maxWidth={260}>
-                  <div className="space-y-0" style={{ fontFamily: "inherit" }}>
+                <Popup minWidth={240} maxWidth={260}>
+                  <div style={{ fontFamily: "inherit", width: 220 }}>
                     {/* Photo */}
                     {report.imageUrl ? (
                       <div
                         style={{
-                          margin: "-12px -20px 10px -20px",
-                          borderRadius: "6px 6px 0 0",
+                          width: "100%",
+                          height: 120,
+                          borderRadius: 6,
                           overflow: "hidden",
-                          height: 130,
+                          marginBottom: 8,
+                          background: "#f1f5f9",
                         }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -119,21 +121,25 @@ export function ReportsMap() {
                           src={report.imageUrl}
                           alt="Problem photo"
                           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }}
                         />
                       </div>
                     ) : (
                       <div
                         style={{
-                          margin: "-12px -20px 10px -20px",
-                          height: 80,
+                          width: "100%",
+                          height: 70,
+                          borderRadius: 6,
                           background: "#f1f5f9",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          borderRadius: "6px 6px 0 0",
+                          marginBottom: 8,
                         }}
                       >
-                        <ImageIcon style={{ width: 28, height: 28, color: "#94a3b8" }} />
+                        <ImageIcon style={{ width: 24, height: 24, color: "#94a3b8" }} />
                       </div>
                     )}
 
