@@ -63,20 +63,20 @@ async function main() {
     },
   });
 
-  // Demo photo URLs — distinct per issue type, consistent across runs
+  // Demo photo URLs — picsum.photos with fixed seeds (always same image, always accessible)
   const DEMO_PHOTOS: Record<string, string> = {
-    POTHOLE:              "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&q=80",
-    BROKEN_ROAD:          "https://images.unsplash.com/photo-1584463699057-a0c47dc192f7?w=800&q=80",
-    SIDEWALK_DAMAGE:      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
-    OVERFLOWING_BIN:      "https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=800&q=80",
-    GARBAGE:              "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&q=80",
-    BROKEN_STREET_LIGHT:  "https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=800&q=80",
-    TRAFFIC_LIGHT_DAMAGE: "https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=800&q=80",
-    WATER_LEAKAGE:        "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?w=800&q=80",
-    TRAFFIC_SIGN_DAMAGE:  "https://images.unsplash.com/photo-1449157291145-7efd050a4d0e?w=800&q=80",
-    CONSTRUCTION_HAZARD:  "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80",
-    ROAD_CRACK:           "https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=800&q=80",
-    OTHER:                "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80",
+    POTHOLE:              "https://picsum.photos/seed/pothole1/800/500",
+    BROKEN_ROAD:          "https://picsum.photos/seed/road2/800/500",
+    SIDEWALK_DAMAGE:      "https://picsum.photos/seed/sidewalk3/800/500",
+    OVERFLOWING_BIN:      "https://picsum.photos/seed/bin4/800/500",
+    GARBAGE:              "https://picsum.photos/seed/garbage5/800/500",
+    BROKEN_STREET_LIGHT:  "https://picsum.photos/seed/light6/800/500",
+    TRAFFIC_LIGHT_DAMAGE: "https://picsum.photos/seed/traffic7/800/500",
+    WATER_LEAKAGE:        "https://picsum.photos/seed/water8/800/500",
+    TRAFFIC_SIGN_DAMAGE:  "https://picsum.photos/seed/sign9/800/500",
+    CONSTRUCTION_HAZARD:  "https://picsum.photos/seed/construction10/800/500",
+    ROAD_CRACK:           "https://picsum.photos/seed/crack11/800/500",
+    OTHER:                "https://picsum.photos/seed/other12/800/500",
   };
 
   const sampleReports = [
