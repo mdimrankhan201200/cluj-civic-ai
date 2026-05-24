@@ -63,20 +63,20 @@ async function main() {
     },
   });
 
-  // Demo photo URLs — picsum.photos with fixed seeds (always same image, always accessible)
+  // Real civic issue photos from Wikimedia Commons (public domain, stable URLs)
   const DEMO_PHOTOS: Record<string, string> = {
-    POTHOLE:              "https://picsum.photos/seed/pothole1/800/500",
-    BROKEN_ROAD:          "https://picsum.photos/seed/road2/800/500",
-    SIDEWALK_DAMAGE:      "https://picsum.photos/seed/sidewalk3/800/500",
-    OVERFLOWING_BIN:      "https://picsum.photos/seed/bin4/800/500",
-    GARBAGE:              "https://picsum.photos/seed/garbage5/800/500",
-    BROKEN_STREET_LIGHT:  "https://picsum.photos/seed/light6/800/500",
-    TRAFFIC_LIGHT_DAMAGE: "https://picsum.photos/seed/traffic7/800/500",
-    WATER_LEAKAGE:        "https://picsum.photos/seed/water8/800/500",
-    TRAFFIC_SIGN_DAMAGE:  "https://picsum.photos/seed/sign9/800/500",
-    CONSTRUCTION_HAZARD:  "https://picsum.photos/seed/construction10/800/500",
-    ROAD_CRACK:           "https://picsum.photos/seed/crack11/800/500",
-    OTHER:                "https://picsum.photos/seed/other12/800/500",
+    POTHOLE:              "https://upload.wikimedia.org/wikipedia/commons/8/86/Pothole_in_Villeray%2C_Montr%C3%A9al.jpg",
+    BROKEN_ROAD:          "https://upload.wikimedia.org/wikipedia/commons/f/fd/002_Damaged_road_surface_background_-_cracked_asphalt_blacktop_in_Spain.jpg",
+    SIDEWALK_DAMAGE:      "https://upload.wikimedia.org/wikipedia/commons/b/ba/Cracked_sidewalk_in_Manhattan.jpg",
+    OVERFLOWING_BIN:      "https://upload.wikimedia.org/wikipedia/commons/0/0b/Rubbish_bin_overflowing_Mount_Pleasant_Road_Tottenham%2C_London%2C_England_01.jpg",
+    GARBAGE:              "https://upload.wikimedia.org/wikipedia/commons/1/10/Littery_street_in_Jaipur.jpg",
+    BROKEN_STREET_LIGHT:  "https://upload.wikimedia.org/wikipedia/commons/9/98/Water_inside_streetlamp.JPG",
+    TRAFFIC_LIGHT_DAMAGE: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Traffic_light_at_Via_dell%27Ara_Massima_di_Ercole%2C_97.jpg",
+    WATER_LEAKAGE:        "https://upload.wikimedia.org/wikipedia/commons/a/a8/Water_main_burst_in_Half_Moon_Lane%2C_Herne_Hill_causing_widespread_damage_-_2013-08-07.jpg",
+    TRAFFIC_SIGN_DAMAGE:  "https://upload.wikimedia.org/wikipedia/commons/8/87/Fallen_stolpe.JPG",
+    CONSTRUCTION_HAZARD:  "https://upload.wikimedia.org/wikipedia/commons/4/48/Kabelschacht_in_Bau%2C_Kanaldeckel_offen.jpg",
+    ROAD_CRACK:           "https://upload.wikimedia.org/wikipedia/commons/7/75/Asphalt_deterioration.jpg",
+    OTHER:                "https://upload.wikimedia.org/wikipedia/commons/1/10/Littery_street_in_Jaipur.jpg",
   };
 
   const sampleReports = [
