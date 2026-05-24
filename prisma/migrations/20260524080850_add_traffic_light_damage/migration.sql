@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "IssueType" ADD VALUE 'TRAFFIC_LIGHT_DAMAGE';
