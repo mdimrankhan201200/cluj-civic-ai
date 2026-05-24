@@ -8,6 +8,10 @@ import type { AiAnalysisResult } from "@/types";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+const MAX_RAW_SIZE = 10 * 1024 * 1024;  // 10MB — reject before even compressing
+const TARGET_SIZE  =  3.5 * 1024 * 1024; // 3.5MB — stay under Vercel's 4.5MB limit
+const MAX_DIMENSION = 1920;               // px — enough for any report photo
+
 type UploadResult = {
   imageUrl: string;
   publicId: string;
@@ -16,14 +20,70 @@ type UploadResult = {
 
 type Props = {
   onUploadComplete: (result: UploadResult) => void;
+  onUploadingChange?: (uploading: boolean) => void;
   disabled?: boolean;
 };
 
-export function ImageUploader({ onUploadComplete, disabled }: Props) {
+async function compressImage(file: File): Promise<File> {
+  if (file.size <= TARGET_SIZE) return file;
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      let { width, height } = img;
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        if (width > height) {
+          height = Math.round((height * MAX_DIMENSION) / width);
+          width = MAX_DIMENSION;
+        } else {
+          width = Math.round((width * MAX_DIMENSION) / height);
+          height = MAX_DIMENSION;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas not supported")); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const tryCompress = (quality: number) => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { reject(new Error("Compression failed")); return; }
+            if (blob.size > TARGET_SIZE && quality > 0.3) {
+              tryCompress(Math.round((quality - 0.1) * 10) / 10);
+            } else {
+              resolve(new File([blob], file.name.replace(/\.\w+$/, ".jpg"), {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              }));
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      tryCompress(0.85);
+    };
+
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Could not read image")); };
+    img.src = url;
+  });
+}
+
+export function ImageUploader({ onUploadComplete, onUploadingChange, disabled }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadDone, setUploadDone] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cancelledRef = useRef(false);
   const { t } = useLanguage();
 
   const handleFile = useCallback(
@@ -32,38 +92,58 @@ export function ImageUploader({ onUploadComplete, disabled }: Props) {
         toast.error(t.uploader.notImage);
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > MAX_RAW_SIZE) {
         toast.error(t.uploader.tooLarge);
         return;
       }
 
+      cancelledRef.current = false;
+      setUploadDone(false);
+
       const objectUrl = URL.createObjectURL(file);
       setPreview(objectUrl);
       setUploading(true);
+      onUploadingChange?.(true);
 
       try {
+        const compressed = await compressImage(file);
+
+        if (cancelledRef.current) return;
+
         const formData = new FormData();
-        formData.append("image", file);
+        formData.append("image", compressed);
 
         const res = await fetch("/api/upload", { method: "POST", body: formData });
 
+        if (cancelledRef.current) return;
+
         if (!res.ok) {
-          const json = await res.json();
+          const json = await res.json().catch(() => ({}));
           throw new Error(json.error ?? t.uploader.uploadError);
         }
 
         const data = (await res.json()) as UploadResult;
+        setUploadDone(true);
         onUploadComplete(data);
+
         if (data.aiResult.isDemoMode) {
-          toast.warning("AI is running in demo mode — categories are estimated. Please review and correct if needed.", { duration: 6000 });
+          toast.warning(
+            "AI is running in demo mode — categories are estimated. Please review and correct if needed.",
+            { duration: 6000 }
+          );
         } else {
           toast.success(t.uploader.success);
         }
       } catch (err) {
+        if (cancelledRef.current) return;
         toast.error((err as Error).message ?? t.uploader.processError);
         setPreview(null);
+        setUploadDone(false);
       } finally {
-        setUploading(false);
+        if (!cancelledRef.current) {
+          setUploading(false);
+          onUploadingChange?.(false);
+        }
       }
     },
     [onUploadComplete, t]
@@ -72,6 +152,8 @@ export function ImageUploader({ onUploadComplete, disabled }: Props) {
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) handleFile(file);
+    // reset input so the same file can be re-selected after clearing
+    e.target.value = "";
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -82,7 +164,11 @@ export function ImageUploader({ onUploadComplete, disabled }: Props) {
   }
 
   function clearImage() {
+    cancelledRef.current = true;
     setPreview(null);
+    setUploading(false);
+    setUploadDone(false);
+    onUploadingChange?.(false);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -107,6 +193,11 @@ export function ImageUploader({ onUploadComplete, disabled }: Props) {
             <X className="h-4 w-4" />
           </button>
         )}
+        {uploadDone && (
+          <div className="absolute bottom-2 left-2 bg-green-600/90 text-white text-xs px-2 py-1 rounded-full">
+            ✓ Uploaded
+          </div>
+        )}
       </div>
     );
   }
@@ -116,15 +207,16 @@ export function ImageUploader({ onUploadComplete, disabled }: Props) {
       onDrop={handleDrop}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
-      onClick={() => inputRef.current?.click()}
-      className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-        dragOver ? "border-blue-500 bg-blue-50" : "border-border hover:border-blue-400 hover:bg-muted/30"
-      } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+      onClick={() => !disabled && inputRef.current?.click()}
+      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+      } ${dragOver ? "border-blue-500 bg-blue-50" : "border-border hover:border-blue-400 hover:bg-muted/30"}`}
     >
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleInputChange}
         disabled={disabled}

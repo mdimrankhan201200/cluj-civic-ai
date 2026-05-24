@@ -38,6 +38,7 @@ export function ReportForm() {
   const router = useRouter();
   const { t } = useLanguage();
   const [step, setStep] = useState(0);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<FormState>({
     imageUrl: "",
@@ -142,7 +143,10 @@ export function ReportForm() {
         <CardContent className="space-y-4">
           {step === 0 && (
             <div className="space-y-4">
-              <ImageUploader onUploadComplete={handleUploadComplete} />
+              <ImageUploader
+                onUploadComplete={handleUploadComplete}
+                onUploadingChange={setUploading}
+              />
               {form.aiResult && <AiAnalysisResult result={form.aiResult} />}
             </div>
           )}
@@ -252,7 +256,7 @@ export function ReportForm() {
                 type="button"
                 onClick={() => setStep((s) => s + 1)}
                 disabled={
-                  (step === 0 && !form.imageUrl) ||
+                  (step === 0 && (!form.imageUrl || uploading)) ||
                   (step === 1 && (!form.latitude || !form.longitude)) ||
                   (step === 2 && (!form.issueType || !form.severity))
                 }
