@@ -6,6 +6,11 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  // Clear demo reports before re-seeding so we don't duplicate
+  await prisma.governmentAction.deleteMany({});
+  await prisma.report.deleteMany({});
+  await prisma.announcement.deleteMany({});
+
   const adminPassword = await bcrypt.hash("admin123", 12);
   const officerPassword = await bcrypt.hash("officer123", 12);
   const citizenPassword = await bcrypt.hash("citizen123", 12);
@@ -58,6 +63,22 @@ async function main() {
     },
   });
 
+  // Demo photo URLs — distinct per issue type, consistent across runs
+  const DEMO_PHOTOS: Record<string, string> = {
+    POTHOLE:              "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&q=80",
+    BROKEN_ROAD:          "https://images.unsplash.com/photo-1584463699057-a0c47dc192f7?w=800&q=80",
+    SIDEWALK_DAMAGE:      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
+    OVERFLOWING_BIN:      "https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=800&q=80",
+    GARBAGE:              "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800&q=80",
+    BROKEN_STREET_LIGHT:  "https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=800&q=80",
+    TRAFFIC_LIGHT_DAMAGE: "https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=800&q=80",
+    WATER_LEAKAGE:        "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?w=800&q=80",
+    TRAFFIC_SIGN_DAMAGE:  "https://images.unsplash.com/photo-1449157291145-7efd050a4d0e?w=800&q=80",
+    CONSTRUCTION_HAZARD:  "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80",
+    ROAD_CRACK:           "https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?w=800&q=80",
+    OTHER:                "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80",
+  };
+
   const sampleReports = [
     {
       userId: citizen1.id,
@@ -68,7 +89,7 @@ async function main() {
       latitude: 46.7712,
       longitude: 23.6236,
       address: "Strada Napoca, Cluj-Napoca",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      imageUrl: DEMO_PHOTOS.POTHOLE,
       aiSummary: "O groapă semnificativă de dimensiuni mari detectată în carosabil. Prezintă risc ridicat pentru vehicule și bicicliști.",
     },
     {
@@ -80,7 +101,7 @@ async function main() {
       latitude: 46.7745,
       longitude: 23.6198,
       address: "Bulevardul Eroilor, Cluj-Napoca",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      imageUrl: DEMO_PHOTOS.BROKEN_STREET_LIGHT,
       aiSummary: "Stâlp de iluminat public nefuncțional. Risc mediu de siguranță pentru pietoni pe timp de noapte.",
     },
     {
@@ -92,7 +113,7 @@ async function main() {
       latitude: 46.7689,
       longitude: 23.5891,
       address: "Parcul Central, Cluj-Napoca",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      imageUrl: DEMO_PHOTOS.GARBAGE,
       aiSummary: "Deșeuri aruncate ilegal lângă zona verde. Necesită curățare urgentă.",
     },
     {
@@ -104,7 +125,7 @@ async function main() {
       latitude: 46.7698,
       longitude: 23.5912,
       address: "Strada Memorandumului, Cluj-Napoca",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      imageUrl: DEMO_PHOTOS.SIDEWALK_DAMAGE,
       aiSummary: "Dale de trotuar deteriorate și ridicate. Risc scăzut, dar necesită reparație pentru siguranța pietonilor.",
     },
     {
@@ -116,7 +137,7 @@ async function main() {
       latitude: 46.7723,
       longitude: 23.6267,
       address: "Strada Iuliu Maniu, Cluj-Napoca",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      imageUrl: DEMO_PHOTOS.WATER_LEAKAGE,
       aiSummary: "Avarie gravă la rețeaua de apă. Scurgere masivă pe carosabil. Necesită intervenție urgentă.",
     },
     {
@@ -128,7 +149,7 @@ async function main() {
       latitude: 46.7656,
       longitude: 23.6145,
       address: "Calea Dorobanților, Cluj-Napoca",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      imageUrl: DEMO_PHOTOS.ROAD_CRACK,
       aiSummary: "Fisuri longitudinale și transversale în carosabil. Degradare progresivă a infrastructurii rutiere.",
     },
     {
@@ -140,7 +161,7 @@ async function main() {
       latitude: 46.7634,
       longitude: 23.6089,
       address: "Intersecția Calea Turzii, Cluj-Napoca",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      imageUrl: DEMO_PHOTOS.TRAFFIC_SIGN_DAMAGE,
       aiSummary: "Indicator rutier de tip STOP lipsă sau grav deteriorat. Risc ridicat de accidente la intersecție.",
     },
     {
@@ -152,8 +173,56 @@ async function main() {
       latitude: 46.7667,
       longitude: 23.6201,
       address: "Piața Unirii, Cluj-Napoca",
-      imageUrl: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+      imageUrl: DEMO_PHOTOS.OVERFLOWING_BIN,
       aiSummary: "Container de deșeuri supraaglomerat în zona centrală. Necesită golire urgentă.",
+    },
+    {
+      userId: citizen1.id,
+      issueType: IssueType.CONSTRUCTION_HAZARD,
+      severity: Severity.HIGH,
+      description: "Șantier fără semnalizare corespunzătoare, pericol pentru pietoni.",
+      status: ReportStatus.ACCEPTED,
+      latitude: 46.7758,
+      longitude: 23.6312,
+      address: "Strada Clinicilor, Cluj-Napoca",
+      imageUrl: DEMO_PHOTOS.CONSTRUCTION_HAZARD,
+      aiSummary: "Șantier de construcție fără bariere de protecție adecvate. Risc ridicat pentru pietoni.",
+    },
+    {
+      userId: citizen2.id,
+      issueType: IssueType.BROKEN_ROAD,
+      severity: Severity.HIGH,
+      description: "Drum distrus complet după iarnă, cratere mari pe toată lățimea.",
+      status: ReportStatus.PENDING,
+      latitude: 46.7601,
+      longitude: 23.6334,
+      address: "Strada Fabricii, Cluj-Napoca",
+      imageUrl: DEMO_PHOTOS.BROKEN_ROAD,
+      aiSummary: "Degradare severă a carosabilului pe o distanță de aproximativ 50m. Necesită reașternere completă.",
+    },
+    {
+      userId: citizen1.id,
+      issueType: IssueType.TRAFFIC_LIGHT_DAMAGE,
+      severity: Severity.CRITICAL,
+      description: "Semafor nefuncțional la intersecție aglomerată.",
+      status: ReportStatus.IN_PROGRESS,
+      latitude: 46.7680,
+      longitude: 23.6178,
+      address: "Intersecția Piața Avram Iancu, Cluj-Napoca",
+      imageUrl: DEMO_PHOTOS.TRAFFIC_LIGHT_DAMAGE,
+      aiSummary: "Semafor complet nefuncțional la intersecție cu trafic intens. Pericol iminent de accidente.",
+    },
+    {
+      userId: citizen2.id,
+      issueType: IssueType.POTHOLE,
+      severity: Severity.MEDIUM,
+      description: "Groapă pe trecerea de pietoni, periculoasă.",
+      status: ReportStatus.PENDING,
+      latitude: 46.7720,
+      longitude: 23.6050,
+      address: "Bulevardul 21 Decembrie 1989, Cluj-Napoca",
+      imageUrl: DEMO_PHOTOS.POTHOLE,
+      aiSummary: "Groapă de dimensiuni medii situată pe trecerea de pietoni. Risc de accidentare pentru pietoni.",
     },
   ];
 
