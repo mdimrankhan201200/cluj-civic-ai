@@ -215,8 +215,7 @@ export function ImageUploader({ onUploadComplete, onUploadingChange, disabled }:
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
-        capture="environment"
+        accept="image/jpeg,image/png,image/webp,image/gif"
         className="hidden"
         onChange={handleInputChange}
         disabled={disabled}
