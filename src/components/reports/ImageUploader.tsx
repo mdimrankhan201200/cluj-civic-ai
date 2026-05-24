@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Upload, X, ImageIcon, Loader2 } from "lucide-react";
+import { Upload, X, ImageIcon, Loader2, Camera } from "lucide-react";
 import type { AiAnalysisResult } from "@/types";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -83,6 +83,7 @@ export function ImageUploader({ onUploadComplete, onUploadingChange, disabled }:
   const [uploadDone, setUploadDone] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const cancelledRef = useRef(false);
   const { t } = useLanguage();
 
@@ -207,15 +208,26 @@ export function ImageUploader({ onUploadComplete, onUploadingChange, disabled }:
       onDrop={handleDrop}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
-      onClick={() => !disabled && inputRef.current?.click()}
+      onClick={() => { /* handled by buttons below */ }}
       className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
         disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
       } ${dragOver ? "border-blue-500 bg-blue-50" : "border-border hover:border-blue-400 hover:bg-muted/30"}`}
     >
+      {/* Gallery input */}
       <input
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={handleInputChange}
+        disabled={disabled}
+      />
+      {/* Camera input — opens camera directly */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        capture="environment"
         className="hidden"
         onChange={handleInputChange}
         disabled={disabled}
@@ -228,10 +240,28 @@ export function ImageUploader({ onUploadComplete, onUploadingChange, disabled }:
           <p className="font-medium">{t.uploader.drag}</p>
           <p className="text-sm text-muted-foreground mt-1">{t.uploader.formats}</p>
         </div>
-        <Button type="button" variant="outline" size="sm" disabled={disabled}>
-          <Upload className="h-4 w-4 mr-2" />
-          {t.uploader.select}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            onClick={(e) => { e.stopPropagation(); cameraRef.current?.click(); }}
+          >
+            <Camera className="h-4 w-4 mr-2" />
+            Take Photo
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {t.uploader.select}
+          </Button>
+        </div>
       </div>
     </div>
   );
